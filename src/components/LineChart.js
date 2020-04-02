@@ -191,7 +191,6 @@ class LineChart extends Component {
     }
   }
 
-
   // Stop hover
   stopHover() {
     this.setState({ hoverLoc: null, activePoint: null });

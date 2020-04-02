@@ -1,97 +1,111 @@
 import React, { Component } from "react";
-// import Chart from "./Chart";
+import axios from "axios";
+import moment from "moment";
+import styled from "styled-components";
+import { InfoBox, LineChart, ToolTip } from "./components";
+
+const AppStyle = styled.div`
+.row {
+  display: flex;
+  justify-content: center;
+}
+
+h1 {
+  padding: 0;
+  margin: 0;
+  font-weight: 700;
+  color: #757575;
+}
+
+#coindesk {
+  font-weight: 300;
+}
+
+#coindesk a {
+  text-decoration: none;
+  color: inherit;
+}
+
+.popup {
+  min-height: 50px;
+}
+`;
 
 class App extends Component {
-  // state = {
-  //   lineChartData: {
-  //     labels: [],
-  //     datasets: [
-  //       {
-  //         type: "line",
-  //         label: "BTC-USD",
-  //         backgroundColor: "rgba(0, 0, 0, 0)",
-  //         borderColor: this.props.theme.palette.primary.main,
-  //         pointBackgroundColor: this.props.theme.palette.secondary.main,
-  //         pointBorderColor: this.props.theme.palette.secondary.main,
-  //         borderWidth: "2",
-  //         lineTension: 0.45,
-  //         data: []
-  //       }
-  //     ]
-  //   },
-  //   lineChartOptions: {
-  //     responsive: true,
-  //     maintainAspectRatio: false,
-  //     tooltips: {
-  //       enabled: true
-  //     },
-  //     scales: {
-  //       xAxes: [
-  //         {
-  //           ticks: {
-  //             autoSkip: true,
-  //             maxTicksLimit: 10
-  //           }
-  //         }
-  //       ]
-  //     }
-  //   }
-  // };
+  constructor(props) {
+    super(props);
 
-  // componentDidMount() {
-  //   const subscribe = {
-  //     type: "subscribe",
-  //     channels: [
-  //       {
-  //         name: "ticker",
-  //         product_ids: ["BTC-USD"]
-  //       }
-  //     ]
-  //   };
+    this.state = {
+      fetchingData: true,
+      data: null,
+      hoverLoc: null,
+      activePoint: null
+    }
+  }
 
-  //   this.ws = new WebSocket("wss://ws-feed.gdax.com");
-  //   this.ws.onopen = () => {
-  //     this.ws.send(JSON.stringify(subscribe));
-  //   };
-  //   this.ws.onmessage = e => {
-  //     const value = JSON.parse(e.data);
-  //     if (value.type !== "ticker") {
-  //       return;
-  //     }
+  handleChartHover(hoverLoc, activePoint) {
+    this.setState({ hoverLoc, activePoint });
+  }
 
-  //     const oldBtcDataSet = this.state.lineChartData.datasets[0];
-  //     const newBtcDataSet = { ...oldBtcDataSet };
-  //     newBtcDataSet.data.push(value.price);
+  componentDidMount() {
+    const getData = () => {
+      const API_URL = "https://api.coindesk.com/v1/bpi/historical/close.json"
+      axios.get(API_URL).then(res => {
+        const sortedData = [];
+        let count = 0;
+        for (const date in res.data.bpi) {
+          sortedData.push({
+            d: moment(date).format("MMM DD"),
+            p: res.data.bpi[date].toLocaleString("us-EN", { style: "currency", currency: "USD" }),
+            x: count,
+            y: res.data.bpi[date]
+          });
+          count++;
+        }
 
-  //     // Renew chart data
-  //     const newChartData = {
-  //       ...this.state.lineChartData,
-  //       datasets: [newBtcDataSet],
-  //       labels: this.state.lineChartData.labels.concat(
-  //         new Date().toLocaleTimeString()
-  //       )
-  //     };
-  //     this.setState({ lineChartData: newChartData });
-  //   };
-  // }
+        this.setState({
+          data: sortedData,
+          fetchingData: false
+        });
+      }).catch(e => {
+        console.log(e);
+      });
+    }
 
-  // componentWillUnmount() {
-  //   this.ws.close();
-  // }
+    getData();
+  }
 
   render() {
-    // const { classes } = this.props;
-
-    // return (
-    //   <div className={classes["chart-container"]}>
-    //     <Chart data={this.state.lineChartData} options={this.state.lineChartOptions} />
-    //   </div>
-    // )
     return (
-      <div>fixing components</div>
+      <AppStyle>
+        <div className="container">
+          <div className="row">
+            <h1>30 Day Bitcoin Price Chart</h1>
+          </div>
+          <div className="row">
+            {!this.state.fetchingData ?
+              <InfoBox data={this.state.data} />
+              : null}
+          </div>
+          <div className="row">
+            <div className="popup">
+              {this.state.hoverLoc ? <ToolTip hoverLoc={this.state.hoverLoc} activePoint={this.state.activePoint} /> : null}
+            </div>
+          </div>
+          <div className="row">
+            <div className="chart">
+              {!this.state.fetchingData ?
+                <LineChart data={this.state.data} onChartHover={(a, b) => this.handleChartHover(a, b)} />
+                : null}
+            </div>
+          </div>
+          <div className="row">
+            <div id="coindesk"> Powered by <a href="http://www.coindesk.com/price/">CoinDesk</a></div>
+          </div>
+        </div>
+      </AppStyle>
     );
   }
 }
 
-// export default withStyles(styles, { withTheme: true })(App);
 export default App;
